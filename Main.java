@@ -15,12 +15,15 @@ public class Main {
         shipsLengthToNames.put(2, List.of("Destroyer (2 cells)"));
 
         String[][] field = initField();
-        System.out.println();
         printField(field);
 
         Scanner scanner = new Scanner(System.in);
 
         tryPlaceShips(scanner, field, shipsLengthToNames);
+
+        System.out.println("The game starts!");
+
+        tryShootShip(scanner, field);
     }
 
     private static String[][] initField() {
@@ -46,19 +49,20 @@ public class Main {
     }
 
     private static void printField(String[][] field) {
+        System.out.println();
         for (String[] fieldStr : field) {
             for (String place : fieldStr) {
                 System.out.print(place + " ");
             }
             System.out.println();
         }
+        System.out.println();
     }
 
     private static void tryPlaceShips(Scanner scanner, String[][] field, Map<Integer,
             List<String>> shipsLengthToNames) {
         for (int length : shipsLengthToNames.keySet()) {
             for (String name : shipsLengthToNames.get(length)) {
-
                 ShipCoordinates shipCoordinates = getUserShipCoordinates(field, name, scanner, length);
                 boolean isVertical = shipCoordinates.firstCoordCol == shipCoordinates.secondCoordCol;
 
@@ -71,8 +75,6 @@ public class Main {
                         field[shipCoordinates.firstCoordRow][j] = "O";
                     }
                 }
-
-                System.out.println();
                 printField(field);
             }
         }
@@ -88,22 +90,16 @@ public class Main {
     }
 
     /**
-     * this method gets ship coordinates from user and checks if they are correct
-     * @param field the battlefield
-     * @param name the ship's name
-     * @param scanner is just a scanner
-     * @param length the ship's length
-     * @return ship coordinates
+     * This method gets ship coordinates from user and checks if they are correct.
      */
     private static ShipCoordinates getUserShipCoordinates(String[][] field, String name, Scanner scanner, int length) {
         int firstCoordRow;
         int firstCoordCol;
         int secondCoordRow;
         int secondCoordCol;
-        System.out.println();
         System.out.println("Enter the coordinates of the " + name + ":");
-        System.out.println();
         while (true) {
+            System.out.println();
             String shipCoordinates = scanner.nextLine();
             String[] shipCoordinatesArray = shipCoordinates.split(" ");
             String firstCoord = shipCoordinatesArray[0];
@@ -159,7 +155,7 @@ public class Main {
     }
 
     /**
-     * this method checks if the ship is too close to already placed ships
+     * This method checks if the ship is too close to already placed ships.
      */
     private static boolean isShipTooClose(String[][] field, int firstCoordRow, int firstCoordCol, int secondCoordRow,
                                           int secondCoordCol) {
@@ -187,6 +183,43 @@ public class Main {
             System.out.println();
         }
         return result;
+    }
+
+    /**
+     * This method reads the shot coordinates, checks if they are inside the field bounds, and if they are -
+     * tells if the shot was a hit or a miss.
+     */
+    private static void tryShootShip(Scanner scanner, String[][] field) {
+        printField(field);
+        System.out.println("Take a shot!");
+        System.out.println();
+
+        while (true) {
+            String shotStr = scanner.nextLine();
+            int shotRow = extractRow(shotStr);
+            int shotCol = extractCol(shotStr);
+            String shotCoord;
+
+            try {
+                shotCoord = field[shotRow][shotCol];
+            } catch (ArrayIndexOutOfBoundsException exception) {
+                System.out.println("Error! You entered the wrong coordinates! Try again:");
+                continue;
+            }
+
+            if (shotCoord.equals("O")) {
+                field[shotRow][shotCol] = "X";
+                printField(field);
+                System.out.println("You hit a ship!");
+                return;
+
+            } else if (shotCoord.equals("~")) {
+                field[shotRow][shotCol] = "M";
+                printField(field);
+                System.out.println("You missed!");
+                return;
+            }
+        }
     }
 
     private static class ShipCoordinates {
