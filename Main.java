@@ -14,16 +14,18 @@ public class Main {
         shipsLengthToNames.put(3, List.of("Submarine (3 cells)", "Cruiser (3 cells)"));
         shipsLengthToNames.put(2, List.of("Destroyer (2 cells)"));
 
-        String[][] field = initField();
-        printField(field);
+        String[][] actualField = initField();
+        String[][] foggedField = initField();
+
+        printField(actualField);
 
         Scanner scanner = new Scanner(System.in);
 
-        tryPlaceShips(scanner, field, shipsLengthToNames);
+        tryPlaceShips(scanner, actualField, shipsLengthToNames);
 
         System.out.println("The game starts!");
 
-        tryShootShip(scanner, field);
+        tryShootShip(scanner, actualField, foggedField);
     }
 
     private static String[][] initField() {
@@ -189,8 +191,8 @@ public class Main {
      * This method reads the shot coordinates, checks if they are inside the field bounds, and if they are -
      * tells if the shot was a hit or a miss.
      */
-    private static void tryShootShip(Scanner scanner, String[][] field) {
-        printField(field);
+    private static void tryShootShip(Scanner scanner, String[][] actualField, String[][] foggedField) {
+        printField(foggedField);
         System.out.println("Take a shot!");
         System.out.println();
 
@@ -201,22 +203,26 @@ public class Main {
             String shotCoord;
 
             try {
-                shotCoord = field[shotRow][shotCol];
+                shotCoord = actualField[shotRow][shotCol];
             } catch (ArrayIndexOutOfBoundsException exception) {
                 System.out.println("Error! You entered the wrong coordinates! Try again:");
                 continue;
             }
 
             if (shotCoord.equals("O")) {
-                field[shotRow][shotCol] = "X";
-                printField(field);
+                actualField[shotRow][shotCol] = "X";
+                foggedField[shotRow][shotCol] = "X";
+                printField(foggedField);
                 System.out.println("You hit a ship!");
+                printField(actualField);
                 return;
 
             } else if (shotCoord.equals("~")) {
-                field[shotRow][shotCol] = "M";
-                printField(field);
+                actualField[shotRow][shotCol] = "M";
+                foggedField[shotRow][shotCol] = "M";
+                printField(foggedField);
                 System.out.println("You missed!");
+                printField(actualField);
                 return;
             }
         }
