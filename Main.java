@@ -6,6 +6,8 @@ public class Main {
     private static final int FIELD_SIZE = 10;
     private static final int CODE_OF_A = 65;
 
+    private static final List<Ship> ships = new ArrayList<>();
+
     public static void main(String[] args) {
 
         Map<Integer, List<String>> shipsLengthToNames =  new LinkedHashMap<>();
@@ -65,16 +67,17 @@ public class Main {
             List<String>> shipsLengthToNames) {
         for (int length : shipsLengthToNames.keySet()) {
             for (String name : shipsLengthToNames.get(length)) {
-                ShipCoordinates shipCoordinates = getUserShipCoordinates(field, name, scanner, length);
-                boolean isVertical = shipCoordinates.firstCoordCol == shipCoordinates.secondCoordCol;
+                Ship ship = getUserShipCoordinates(field, name, scanner, length);
+                ships.add(ship);
+                boolean isVertical = ship.getFirstCoordCol() == ship.getSecondCoordCol();
 
                 if (isVertical) {
-                    for (int i = shipCoordinates.firstCoordRow; i <= shipCoordinates.secondCoordRow; i++) {
-                        field[i][shipCoordinates.firstCoordCol] = "O";
+                    for (int i = ship.getFirstCoordRow(); i <= ship.getSecondCoordRow(); i++) {
+                        field[i][ship.getFirstCoordCol()] = "O";
                     }
                 } else {
-                    for (int j = shipCoordinates.firstCoordCol; j <= shipCoordinates.secondCoordCol; j++) {
-                        field[shipCoordinates.firstCoordRow][j] = "O";
+                    for (int j = ship.getFirstCoordCol(); j <= ship.getSecondCoordCol(); j++) {
+                        field[ship.getFirstCoordRow()][j] = "O";
                     }
                 }
                 printField(field);
@@ -94,7 +97,7 @@ public class Main {
     /**
      * This method gets ship coordinates from user and checks if they are correct.
      */
-    private static ShipCoordinates getUserShipCoordinates(String[][] field, String name, Scanner scanner, int length) {
+    private static Ship getUserShipCoordinates(String[][] field, String name, Scanner scanner, int length) {
         int firstCoordRow;
         int firstCoordCol;
         int secondCoordRow;
@@ -129,7 +132,7 @@ public class Main {
 
             break;
         }
-        return new ShipCoordinates(firstCoordRow, firstCoordCol, secondCoordRow, secondCoordCol);
+        return new Ship(firstCoordRow, firstCoordCol, secondCoordRow, secondCoordCol);
     }
 
     private static boolean validateCoords(String[][] field, String name, int length, int firstCoordRow,
@@ -159,8 +162,8 @@ public class Main {
     /**
      * This method checks if the ship is too close to already placed ships.
      */
-    private static boolean isShipTooClose(String[][] field, int firstCoordRow, int firstCoordCol, int secondCoordRow,
-                                          int secondCoordCol) {
+    private static boolean isShipTooClose(String[][] actualField, int firstCoordRow, int firstCoordCol,
+                                          int secondCoordRow, int secondCoordCol) {
         int upperRow = firstCoordRow - 1;
         int lowerRow = secondCoordRow + 1;
         int leftCol = firstCoordCol - 1;
@@ -172,7 +175,7 @@ public class Main {
                 if (i <= 0 || j <= 0 || i > FIELD_SIZE || j > FIELD_SIZE) {
                     continue;
                 }
-                if (field[i][j].equals("O")) {
+                if (actualField[i][j].equals("O")) {
                     result = true;
                     break;
                 }
@@ -182,7 +185,6 @@ public class Main {
         if (result) {
             System.out.println();
             System.out.println("Error! You placed it too close to another one. Try again:");
-            System.out.println();
         }
         return result;
     }
@@ -194,9 +196,10 @@ public class Main {
     private static void tryShootShip(Scanner scanner, String[][] actualField, String[][] foggedField) {
         printField(foggedField);
         System.out.println("Take a shot!");
-        System.out.println();
 
         while (true) {
+            System.out.println();
+
             String shotStr = scanner.nextLine();
             int shotRow = extractRow(shotStr);
             int shotCol = extractCol(shotStr);
@@ -209,36 +212,46 @@ public class Main {
                 continue;
             }
 
-            if (shotCoord.equals("O")) {
+            if (shotCoord.equals("~")) {
+                foggedField[shotRow][shotCol] = "M";
+                printField(foggedField);
+                System.out.println("You missed. Try again:");
+            } else if (shotCoord.equals("O") || shotCoord.equals("X")) {
                 actualField[shotRow][shotCol] = "X";
                 foggedField[shotRow][shotCol] = "X";
                 printField(foggedField);
-                System.out.println("You hit a ship!");
-                printField(actualField);
-                return;
-
-            } else if (shotCoord.equals("~")) {
-                actualField[shotRow][shotCol] = "M";
-                foggedField[shotRow][shotCol] = "M";
-                printField(foggedField);
-                System.out.println("You missed!");
-                printField(actualField);
-                return;
+                if (isShipSunk(actualField, shotRow, shotCol)) {
+                    if (areAllShipsSunk()) {
+                        System.out.println("You sank the last ship. You won. Congratulations!");
+                        return;
+                    } else {
+                        System.out.println("You sank a ship! Specify a new target:");
+                    }
+                } else {
+                    System.out.println("You hit a ship! Try again:");
+                }
             }
         }
     }
 
-    private static class ShipCoordinates {
-        private final int firstCoordRow;
-        private final int firstCoordCol;
-        private final int secondCoordRow;
-        private final int secondCoordCol;
+    private static boolean areAllShipsSunk() {
+        return ships.stream().allMatch(Ship::isSunk);
+    }
 
-        public ShipCoordinates(int firstCoordRow, int firstCoordCol, int secondCoordRow, int secondCoordCol) {
-            this.firstCoordRow = firstCoordRow;
-            this.firstCoordCol = firstCoordCol;
-            this.secondCoordRow = secondCoordRow;
-            this.secondCoordCol = secondCoordCol;
+    private static boolean isShipSunk(String[][] actualField, int shotRow, int shotCol) {
+        for (Ship ship : ships) {
+            if (ship.contains(shotRow, shotCol)) {
+                for (int i = ship.getFirstCoordRow(); i <= ship.getSecondCoordRow(); i++) {
+                    for (int j = ship.getFirstCoordCol(); j <= ship.getSecondCoordCol(); j++) {
+                        if (actualField[i][j].equals("O")) {
+                            return false;
+                        }
+                    }
+                }
+                ship.sink();
+                return true;
+            }
         }
+        return false;
     }
 }
